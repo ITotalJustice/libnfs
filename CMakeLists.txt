@@ -51,6 +51,11 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}
                     include
                     include/nfsc)
 
+# todo: add other platform-specific includes here (ps2/ps3)
+if (NINTENDO_SWITCH)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/switch)
+endif()
+
 # list of system libs (sockets/etc) to be linked on this system
 set(SYSTEM_LIBRARIES "")
 # list of core (static) libraries built in current configuration (used by lib/CMakeLists.txt)

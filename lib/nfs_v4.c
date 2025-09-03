@@ -38,6 +38,10 @@
 #include "ps3_compat.h"
 #endif
 
+#ifdef __SWITCH__
+#include "switch_compat.h"
+#endif
+
 #ifdef WIN32
 #include <win32/win32_compat.h>
 #endif
@@ -168,7 +172,7 @@ struct nfs4_cb_data {
 
         /* Used to track open_owner during open() */
         uint32_t open_owner;
-        
+
         /* internal callback */
         rpc_cb continue_cb;
 
@@ -262,7 +266,7 @@ free_nfs4_cb_data(struct nfs4_cb_data *data)
         if (data->flags & MUTEX_HELD) {
                 nfs_mt_mutex_unlock(&data->nfs->nfsi->nfs4_open_call_mutex);
         }
-#endif        
+#endif
         free(data->path);
         free(data->filler.data);
         if (data->filler.blob0.val && data->filler.blob0.free) {
@@ -1166,10 +1170,10 @@ nfs4_allocate_op(struct nfs_context *nfs, nfs_argop4 **op,
                         *tmp = 0;
                         tmp = tmp + 1;
                 }
-                i += nfs4_op_lookup(nfs, &(*op)[i], ptr); 
+                i += nfs4_op_lookup(nfs, &(*op)[i], ptr);
 
                 ptr = tmp;
-        }                
+        }
 
         i += nfs4_op_getattr(nfs, &(*op)[i], standard_attributes, 2);
 
@@ -1225,7 +1229,7 @@ nfs4_lookup_path_2_cb(struct rpc_context *rpc, int status, void *command_data,
                 return;
         }
         rlres = &res->resarray.resarray_val[i].nfs_resop4_u.opreadlink;
-        
+
         tmp = malloc(strlen(data->path) + 3 + rlres->READLINK4res_u.resok4.link.utf8string_len);
         if (tmp == NULL) {
                 nfs_set_error(nfs, "Out of memory duplicating path.");
@@ -1534,7 +1538,7 @@ nfs4_mount_5_cb(struct rpc_context *rpc, int status, void *command_data,
                 data->cb(-EINVAL, nfs, nfs_get_error(nfs), data->private_data);
                 free_nfs4_cb_data(data);
         }
-        
+
 	/*
 	 * Now the entire mount process (including the NFS FSINFO and GETATTR)
 	 * has completed. Any RPC failure till now would have caused the mount
@@ -1552,7 +1556,7 @@ nfs4_mount_5_cb(struct rpc_context *rpc, int status, void *command_data,
 			   nfs->nfsi->auto_reconnect,
 			   nfs->nfsi->timeout,
 			   nfs->nfsi->retrans);
-        
+
         data->cb(0, nfs, NULL, data->private_data);
         free_nfs4_cb_data(data);
 }
@@ -1597,7 +1601,7 @@ nfs4_mount_4_cb(struct rpc_context *rpc, int status, void *command_data,
         nfsfh.fh = nfs->nfsi->rootfh;
         i = nfs4_op_putfh(nfs, &op[0], &nfsfh);
         i += nfs4_op_getattr(nfs, &op[i], rwmax_attributes, 1);
-               
+
         memset(&args, 0, sizeof(args));
         args.argarray.argarray_len = i;
         args.argarray.argarray_val = op;
@@ -1673,7 +1677,7 @@ nfs4_mount_2_cb(struct rpc_context *rpc, int status, void *command_data,
 
         i = nfs4_op_setclientid_confirm(nfs, &op[0], nfs->nfsi->clientid,
                                         nfs->nfsi->setclientid_confirm);
-               
+
         memset(&args, 0, sizeof(args));
         args.argarray.argarray_len = i;
         args.argarray.argarray_val = op;
@@ -1707,7 +1711,7 @@ nfs4_mount_1_cb(struct rpc_context *rpc, int status, void *command_data,
         memset(op, 0, sizeof(op));
 
         i = nfs4_op_setclientid(nfs, &op[0], nfs->nfsi->verifier, nfs->nfsi->client_name);
-        
+
         memset(&args, 0, sizeof(args));
         args.argarray.argarray_len = i;
         args.argarray.argarray_val = op;
@@ -1963,7 +1967,7 @@ nfs4_mkdir2_async(struct nfs_context *nfs, const char *path, int mode,
         data->private_data = private_data;
         data->filler.func = nfs4_populate_mkdir;
         data->filler.max_op = 1;
-        
+
         /* attribute mask */
         u32ptr = malloc(2 * sizeof(uint32_t));
         if (u32ptr == NULL) {
@@ -2055,7 +2059,7 @@ nfs4_rmdir_async(struct nfs_context *nfs, const char *path,
 {
         return nfs4_remove_async(nfs, path, cb, private_data);
 }
-    
+
 static void
 nfs_increment_seqid(struct nfsfh *nfsfh, uint32_t status)
 {
@@ -2260,7 +2264,7 @@ nfs4_open_cb(struct rpc_context *rpc, int status, void *command_data,
         memcpy(fh->fh.val, gresok->object.nfs_fh4_val, fh->fh.len);
         fh->open_seqid = 1;
         fh->open_owner = data->open_owner;
-        
+
         if (data->filler.flags & O_SYNC) {
                 fh->is_sync = 1;
         }
@@ -2353,7 +2357,7 @@ nfs4_populate_open(struct nfs4_cb_data *data, nfs_argop4 *op)
         if (!(data->filler.flags & O_WRONLY)) {
                 access_mask |= ACCESS4_READ;
         }
-        
+
         /* Access */
         i = nfs4_op_access(nfs, &op[0], access_mask);
 
@@ -2474,10 +2478,10 @@ nfs4_open_readlink_cb(struct rpc_context *rpc, int status, void *command_data,
                 nfs_mt_mutex_unlock(&nfs->nfsi->nfs4_open_counter_mutex);
         }
 #endif
-        
+
         data->filler.func = nfs4_populate_open;
         data->filler.max_op = 3;
- 
+
         if (nfs4_lookup_path_async(nfs, data, nfs4_open_cb) < 0) {
                 data->cb(-ENOMEM, nfs, res, data->private_data);
                 free_nfs4_cb_data(data);
@@ -2595,13 +2599,13 @@ nfs4_open_async_internal(struct nfs_context *nfs, struct nfs4_cb_data *data,
         if (nfs->rpc->multithreading_enabled) {
                 nfs_mt_mutex_lock(&nfs->nfsi->nfs4_open_counter_mutex);
         }
-#endif        
+#endif
         data->open_owner = nfs->nfsi->open_counter++;
 #ifdef HAVE_MULTITHREADING
         if (nfs->rpc->multithreading_enabled) {
                 nfs_mt_mutex_unlock(&nfs->nfsi->nfs4_open_counter_mutex);
         }
-#endif        
+#endif
         data->filler.func = nfs4_populate_open;
         data->filler.max_op = 3;
         data->filler.flags = flags;
@@ -2621,7 +2625,7 @@ nfs4_open_async(struct nfs_context *nfs, const char *path, int flags,
         struct nfs4_cb_data *data;
         uint32_t m;
         int ret;
-        
+
         data = init_cb_data_split_path(nfs, path);
         if (data == NULL) {
                 return -1;
@@ -2672,7 +2676,7 @@ nfs4_open_async(struct nfs_context *nfs, const char *path, int flags,
                 nfs_mt_mutex_lock(&nfs->nfsi->nfs4_open_call_mutex);
                 data->flags |= MUTEX_HELD;
         }
-#endif        
+#endif
         ret = nfs4_open_async_internal(nfs, data, flags, mode);
         return ret;
 }
@@ -2832,7 +2836,7 @@ nfs4_close_async(struct nfs_context *nfs, struct nfsfh *nfsfh, nfs_cb cb,
                 nfs_mt_mutex_lock(&nfs->nfsi->nfs4_open_call_mutex);
                 data->flags |= MUTEX_HELD;
         }
-#endif        
+#endif
         data->nfs          = nfs;
         data->cb           = cb;
         data->private_data = private_data;
@@ -2923,7 +2927,7 @@ nfs4_pread_async_internal(struct nfs_context *nfs, struct nfsfh *nfsfh,
         data->filler.blob0.free = NULL;
         data->rw_data.offset = offset;
         data->rw_data.update_pos = update_pos;
-        
+
         memset(op, 0, sizeof(op));
 
         i = nfs4_op_putfh(nfs, &op[0], nfsfh);
@@ -2954,11 +2958,11 @@ nfs4_preadv_async_internal(struct nfs_context *nfs, struct nfsfh *nfsfh,
         int i;
         struct rpc_pdu *pdu;
         size_t count = 0;
-        
+
         for (i = 0; i < iovcnt; i++) {
                 count += iov[i].iov_len;
         }
-        
+
         data = calloc(1, sizeof(*data));
         if (data == NULL) {
                 nfs_set_error(nfs, "Out of memory. Failed to allocate "
@@ -2974,7 +2978,7 @@ nfs4_preadv_async_internal(struct nfs_context *nfs, struct nfsfh *nfsfh,
         data->filler.blob0.free = NULL;
         data->rw_data.offset = offset;
         data->rw_data.update_pos = update_pos;
-        
+
         memset(op, 0, sizeof(op));
 
         i = nfs4_op_putfh(nfs, &op[0], nfsfh);
@@ -3085,7 +3089,7 @@ nfs4_readlink_cb(struct rpc_context *rpc, int status, void *command_data,
                 return;
         }
         data->filler.blob0.val  = target;
-        data->filler.blob0.free = free;        
+        data->filler.blob0.free = free;
         data->cb(0, nfs, target, data->private_data);
         free_nfs4_cb_data(data);
 }
@@ -4001,7 +4005,7 @@ nfs4_truncate_close_cb(struct rpc_context *rpc, int status, void *command_data,
         struct nfs_context *nfs = data->nfs;
         COMPOUND4res *res = command_data;
         struct nfsfh *fh = data->filler.blob0.val;
-                
+
         assert(rpc->magic == RPC_CONTEXT_MAGIC);
 
         if (res) {
@@ -4084,7 +4088,7 @@ nfs4_truncate_async(struct nfs_context *nfs, const char *path, uint64_t length,
                 nfs_mt_mutex_lock(&nfs->nfsi->nfs4_open_call_mutex);
                 data->flags |= MUTEX_HELD;
         }
-#endif        
+#endif
         if (nfs4_open_async_internal(nfs, data, O_WRONLY, 0) < 0) {
                 return -1;
         }
@@ -4177,7 +4181,7 @@ nfs4_ftruncate_async(struct nfs_context *nfs, struct nfsfh *fh,
 
         length = nfs_hton64(length);
         memcpy(data->filler.blob3.val, &length, sizeof(uint64_t));
-        
+
         memset(op, 0, sizeof(op));
 
         i = nfs4_op_putfh(nfs, &op[0], fh);
@@ -4213,7 +4217,7 @@ nfs4_lseek_cb(struct rpc_context *rpc, int status, void *command_data,
         assert(rpc->magic == RPC_CONTEXT_MAGIC);
 
         memcpy(&offset, data->filler.blob1.val, sizeof(int64_t));
-        
+
         if (check_nfs4_error(nfs, status, data, res, "LSEEK")) {
                 return;
         }
@@ -5012,7 +5016,7 @@ nfs4_fchmod_async(struct nfs_context *nfs, struct nfsfh *fh, int mode,
 
         m = htonl(mode);
         memcpy(data->filler.blob3.val, &m, sizeof(uint32_t));
-        
+
         memset(op, 0, sizeof(op));
 
         i = nfs4_op_putfh(nfs, &op[0], fh);
@@ -5047,7 +5051,7 @@ nfs4_create_chown_buffer(struct nfs_context *nfs, struct nfs4_cb_data *data,
                 return -1;
         }
         data->filler.blob3.free = free;
-        
+
         i = 0;
         str = data->filler.blob3.val;
         /* UID */
@@ -5160,7 +5164,7 @@ nfs4_fchown_async(struct nfs_context *nfs, struct nfsfh *fh, int uid, int gid,
                 free_nfs4_cb_data(data);
                 return -1;
         }
-        
+
         memset(op, 0, sizeof(op));
 
         i = nfs4_op_putfh(nfs, &op[0], fh);

@@ -38,6 +38,10 @@
 #include "ps3_compat.h"
 #endif
 
+#ifdef __SWITCH__
+#include "switch_compat.h"
+#endif
+
 #ifdef WIN32
 #include <win32/win32_compat.h>
 #endif
@@ -308,7 +312,7 @@ nfs3_lookup_path_1_cb(struct rpc_context *rpc, int status, void *command_data,
 	if (res->LOOKUP3res_u.resok.obj_attributes.attributes_follow) {
                 fattr3_to_nfs_attr(&attr, &res->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes);
         }
-                
+
 	/* This function will always invoke the callback and cleanup
 	 * for failures. So no need to check the return value.
 	 */
@@ -1152,7 +1156,7 @@ nfs3_mount_async(struct nfs_context *nfs, const char *server,
 	}
         free(nfs->nfsi->server);
 	nfs->nfsi->server = new_server;
-        
+
 	free(nfs->rpc->server);
 	nfs->rpc->server = strdup(nfs->nfsi->server);
 
@@ -1171,7 +1175,7 @@ nfs3_mount_async(struct nfs_context *nfs, const char *server,
 			      "memory for nfs mount data");
 		return -1;
 	}
-        
+
 	data->nfs          = nfs;
 	data->cb           = cb;
 	data->private_data = private_data;
@@ -2087,7 +2091,7 @@ nfs3_utime_async(struct nfs_context *nfs, const char *path,
 	return 0;
 }
 
-        
+
 static void
 nfs3_chown_cb(struct rpc_context *rpc, int status, void *command_data,
               void *private_data)
@@ -3588,7 +3592,7 @@ nfs3_mkdir2_async(struct nfs_context *nfs, const char *path, int mode,
                 sprintf(new_path, "%c%s", '\0', path);
         }
 
-	/* new_path now points to the parent directory and beyond the 
+	/* new_path now points to the parent directory and beyond the
          * null terminator is the new directory to create */
 	if (nfs3_lookuppath_async(nfs, new_path, 0, cb, private_data,
                                   nfs3_mkdir_continue_internal,
@@ -3778,7 +3782,7 @@ nfs3_getacl_cb(struct rpc_context *rpc, int status, void *command_data,
 	struct nfs_context *nfs = data->nfs;
         fattr3_acl acl;
         int i;
-        
+
 	assert(rpc->magic == RPC_CONTEXT_MAGIC);
 
 	if (check_nfs3_error(nfs, status, data, command_data)) {
@@ -3857,7 +3861,7 @@ nfs3_getacl_async(struct nfs_context *nfs, struct nfsfh *nfsfh, nfs_cb cb,
 	}
 	return 0;
 }
-        
+
 static void
 nfs3_stat_1_cb(struct rpc_context *rpc, int status, void *command_data,
                void *private_data)
@@ -4203,7 +4207,7 @@ nfs3_write_append_cb(struct rpc_context *rpc, int status, void *command_data,
 	}
 
 	if (nfs3_pwrite_async_internal(nfs, data->nfsfh,
-                                       data->usrbuf, data->count, res->GETATTR3res_u.resok.obj_attributes.size, 
+                                       data->usrbuf, data->count, res->GETATTR3res_u.resok.obj_attributes.size,
                                        data->cb, data->private_data, 1) != 0) {
 		data->cb(-ENOMEM, nfs, nfs_get_error(nfs),
                          data->private_data);
@@ -4338,7 +4342,7 @@ nfs3_pwrite_async_internal(struct nfs_context *nfs, struct nfsfh *nfsfh,
         if (count > nfs_get_writemax(nfs)) {
                 count = nfs_get_writemax(nfs);
         }
-        
+
         nfsfh->is_dirty = 1;
 	data = calloc(1, sizeof(struct nfs_cb_data));
 	if (data == NULL) {
@@ -4511,7 +4515,7 @@ nfs3_pread_async_internal(struct nfs_context *nfs, struct nfsfh *nfsfh,
         if (count > nfs_get_readmax(nfs)) {
                 count = nfs_get_readmax(nfs);
         }
-        
+
 	data = calloc(1, sizeof(struct nfs_cb_data));
 	if (data == NULL) {
 		nfs_set_error(nfs, "out of memory: failed to allocate "
@@ -4856,7 +4860,7 @@ static void nfs3_open_create_cb(int err, struct nfs_context *nfs, void *ret_data
                 free_open_cb_data(cb_data);
                 return;
         }
-        
+
         cb_data->cb(0, nfs, ret_data, cb_data->private_data);
         free_open_cb_data(cb_data);
 }
@@ -4921,7 +4925,7 @@ nfs3_create_1_cb(struct rpc_context *rpc, int status, void *command_data,
                res->CREATE3res_u.resok.obj.post_op_fh3_u.handle.data.data_val,
                nfsfh->fh.len);
 
-        
+
 	nfs_dircache_drop(nfs, &data->fh);
 	data->cb(0, nfs, nfsfh, data->private_data);
         free_nfs_cb_data(data);
@@ -5052,4 +5056,3 @@ nfs3_open_async(struct nfs_context *nfs, const char *path, int flags,
 	}
 	return 0;
 }
-

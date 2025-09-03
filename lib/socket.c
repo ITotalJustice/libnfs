@@ -35,6 +35,10 @@
 #include "ps3_compat.h"
 #endif
 
+#ifdef __SWITCH__
+#include "switch_compat.h"
+#endif
+
 #ifdef WIN32
 #include <win32/win32_compat.h>
 #endif
@@ -156,7 +160,7 @@ set_nonblocking(int fd)
 static void
 set_nolinger(int fd)
 {
-#if !defined(PS2_EE)        
+#if !defined(PS2_EE)
 	struct linger lng;
 	lng.l_onoff = 1;
 	lng.l_linger = 0;
@@ -770,7 +774,7 @@ rpc_read_from_socket(struct rpc_context *rpc)
                 } else {
                         rpc_advance_cursor(rpc, &rpc->pdu->in, count);
                 }
-                
+
                 if (rpc->inpos == rpc->pdu_size) {
                         switch (rpc->state) {
                         case READ_RM:
@@ -853,7 +857,7 @@ rpc_read_from_socket(struct rpc_context *rpc)
                                  * that we have already read these 4 bytes in
                                  * PAYLOAD and FRAGMENT
                                  */
-                                rpc->inpos = 0;   
+                                rpc->inpos = 0;
 
                                 if (!rpc->is_server_context) {
                                         /* Unknown xid, either unsolicited
@@ -1490,7 +1494,7 @@ rpc_connect_sockaddr_async(struct rpc_context *rpc)
 	{
 		struct sockaddr_storage ss;
 		struct sockaddr_in *sin;
-#if !defined(PS3_PPU) && !defined(PS2_EE)		
+#if !defined(PS3_PPU) && !defined(PS2_EE) && !defined(__SWITCH__)
 		struct sockaddr_in6 *sin6;
 #endif
 		static int portOfs = 0;
@@ -1499,7 +1503,7 @@ rpc_connect_sockaddr_async(struct rpc_context *rpc)
 		int startOfs, port, rc;
 
 		sin  = (struct sockaddr_in *)&ss;
-#if !defined(PS3_PPU) && !defined(PS2_EE)        
+#if !defined(PS3_PPU) && !defined(PS2_EE) && !defined(__SWITCH__)
 		sin6 = (struct sockaddr_in6 *)&ss;
 #endif
 		if (portOfs == 0) {
@@ -1524,7 +1528,7 @@ rpc_connect_sockaddr_async(struct rpc_context *rpc)
                                                 sizeof(struct sockaddr_in);
 #endif
 					break;
-#if !defined(PS3_PPU) && !defined(PS2_EE)
+#if !defined(PS3_PPU) && !defined(PS2_EE) && !defined(__SWITCH__)
 				case AF_INET6:
 					sin6->sin6_port = port;
 					sin6->sin6_family = AF_INET6;
@@ -1594,7 +1598,7 @@ rpc_set_sockaddr(struct rpc_context *rpc, const char *server, int port)
                         sizeof(struct sockaddr_in);
 #endif
 		break;
-#if !defined(PS3_PPU) && !defined(PS2_EE)
+#if !defined(PS3_PPU) && !defined(PS2_EE) && !defined(__SWITCH__)
 	case AF_INET6:
 		((struct sockaddr_in6 *)&rpc->s)->sin6_family = ai->ai_family;
 		((struct sockaddr_in6 *)&rpc->s)->sin6_port = htons(port);
@@ -1799,7 +1803,7 @@ rpc_reconnect_requeue(struct rpc_context *rpc)
          * Drop all fragments on reconnect
          */
         rpc_free_all_fragments(rpc);
-        
+
 	/* Socket is closed so we will not get any replies to any commands
 	 * in flight. Move them all over from the waitpdu queue back to the
          * out queue.

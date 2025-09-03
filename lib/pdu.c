@@ -31,6 +31,10 @@
 #include "ps3_compat.h"
 #endif
 
+#ifdef __SWITCH__
+#include "switch_compat.h"
+#endif
+
 #ifdef WIN32
 #include <win32/win32_compat.h>
 #endif
@@ -208,7 +212,7 @@ static int rpc_remove_pdu_from_queue_unlocked(struct rpc_context *rpc,
 #endif /* HAVE_MULTITHREADING */
         return ret;
 }
-        
+
 unsigned int rpc_hash_xid(struct rpc_context *rpc, uint32_t xid)
 {
 	return (xid * 7919) % rpc->num_hashes;
@@ -698,7 +702,7 @@ int rpc_queue_pdu(struct rpc_context *rpc, struct rpc_pdu *pdu)
         pdu->pdu_stats.vers = pdu->msg.body.cbody.vers;
         pdu->pdu_stats.proc = pdu->msg.body.cbody.proc;
         pdu->pdu_stats.response_time = 0;
-        
+
 	/*
 	 * For udp we dont queue, we just send it straight away.
 	 *
@@ -1258,7 +1262,7 @@ struct rpc_pdu *rpc_find_pdu(struct rpc_context *rpc, uint32_t xid)
 		}
                 break;
         }
-        
+
  finished:
         if (pdu) {
                 pdu->next = NULL;
@@ -1332,4 +1336,3 @@ int rpc_process_pdu(struct rpc_context *rpc, char *buf, int size)
         }
         return 0;
 }
-
