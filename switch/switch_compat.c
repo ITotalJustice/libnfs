@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#if 0
 ssize_t writev(int fd, const struct iovec *iov, int iovcnt) {
     ssize_t total = 0;
     for (int i = 0; i < iovcnt; ++i) {
@@ -65,3 +66,4 @@ ssize_t readv(int fd, const struct iovec *iov, int iovcnt) {
 
     return total;
 }
+#endif
