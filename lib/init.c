@@ -31,6 +31,10 @@
 #include "ps3_compat.h"
 #endif
 
+#ifdef __SWITCH__
+#include "switch_compat.h"
+#endif
+
 #ifdef WIN32
 #include <win32/win32_compat.h>
 #endif
@@ -281,7 +285,7 @@ int rpc_set_username(struct rpc_context *rpc, const char *username)
 #ifdef HAVE_LIBKRB5
         free(discard_const(rpc->username));
         rpc->username = NULL;
-                
+
         if (username == NULL) {
                 return 0;
         }
@@ -335,7 +339,7 @@ void rpc_set_error(struct rpc_context *rpc, const char *error_string, ...)
 {
         va_list ap;
 	char *old_error_string = NULL;
-        
+
 #ifdef HAVE_MULTITHREADING
         if (rpc->multithreading_enabled) {
                 nfs_mt_mutex_lock(&rpc->rpc_mutex);

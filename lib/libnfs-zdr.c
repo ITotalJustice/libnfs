@@ -47,6 +47,10 @@
 #include "ps3_compat.h"
 #endif
 
+#ifdef __SWITCH__
+#include "switch_compat.h"
+#endif
+
 #ifdef HAVE_ARPA_INET_H
 #include <arpa/inet.h>
 #endif
@@ -123,7 +127,7 @@ void *zdr_malloc(ZDR *zdrs, uint32_t size)
 
 	return &mem->buf[0];
 }
-	
+
 void libnfs_zdr_destroy(ZDR *zdrs)
 {
 	while (zdrs->mem != NULL) {
@@ -236,7 +240,7 @@ bool_t libnfs_zdr_enum(ZDR *zdrs, enum_t *e)
 	ret = libnfs_zdr_u_int(zdrs, (uint32_t *)&i);
 	*e = i;
 
-	return ret;	
+	return ret;
 }
 
 bool_t libnfs_zdr_bool(ZDR *zdrs, bool_t *b)
@@ -509,7 +513,7 @@ static bool_t libnfs_accepted_reply(ZDR *zdrs, struct accepted_reply *ar)
                         if (!libnfs_zdr_u_int(zdrs, &len)) {
                                 return FALSE;
                         }
-                                
+
                         message_buffer.length = len;
                         message_buffer.value = zdr_getptr(zdrs) + zdr_getpos(zdrs);
                         output_buffer = ar->reply_data.results.output_buffer;
@@ -624,14 +628,14 @@ static bool_t libnfs_rpc_msg(struct rpc_context *rpc, ZDR *zdrs, struct rpc_msg 
 	switch (msg->direction) {
 	case CALL:
 		ret = libnfs_rpc_call_body(rpc, zdrs, &msg->body.cbody);
-		if (!ret) { 
+		if (!ret) {
 			rpc_set_error(rpc, "libnfs_rpc_msg failed to encode "
 				"CALL, ret=%d: %s", ret, rpc_get_error(rpc));
 		}
 		return ret;
 	case REPLY:
 		ret = libnfs_rpc_reply_body(rpc, zdrs, &msg->body.rbody);
-		if (!ret) { 
+		if (!ret) {
 			rpc_set_error(rpc, "libnfs_rpc_msg failed to decode "
 				"REPLY, ret=%d: %s", ret, rpc_get_error(rpc));
 		}
@@ -728,7 +732,7 @@ int libnfs_authgss_init(struct rpc_context *rpc)
         rpc->auth->ah_cred.oa_base = NULL;
 
         rpc->auth->ah_cred.oa_flavor = AUTH_GSS;
-        
+
 	return 0;
 }
 
@@ -748,11 +752,11 @@ int libnfs_authgss_gen_creds(struct rpc_context *rpc, ZDR *zdr, int level)
         gss_v1->service = level;
         gss_v1->handle.handle_val = rpc->context;
         gss_v1->handle.handle_len = rpc->context_len;
-        
+
         if (!zdr_rpc_gss_cred_t(zdr, &gss)) {
                 return -1;
         }
-        
+
 	return 0;
 }
 #endif /* HAVE_LIBKRB5 */
@@ -776,4 +780,3 @@ void libnfs_auth_destroy(struct AUTH *auth)
 	}
 	free(auth);
 }
-
