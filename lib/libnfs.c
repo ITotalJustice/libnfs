@@ -587,7 +587,7 @@ flags:
 	/*
 	 * Call this in the end after all options are processed, as it uses
 	 * rpc->debug.
-	 */ 
+	 */
 	if (nfs->rpc->wanted_xprtsec == RPC_XPRTSEC_TLS ||
             nfs->rpc->wanted_xprtsec == RPC_XPRTSEC_MTLS) {
 		/* tls_global_init() MUST succeed for us to use TLS security */
@@ -1241,7 +1241,7 @@ rpc_connect_program_async(struct rpc_context *rpc, const char *server,
 
         rpc->program = 100001;
         rpc->version = 2;
-        
+
 	if (rpc_connect_async(rpc, server, 111, rpc_connect_program_1_cb,
                               data) != 0) {
 		rpc_set_error(rpc, "Failed to start connection. %s",
@@ -1579,7 +1579,7 @@ static void r_cb(int status, struct nfs_context *nfs,
         /*
          * Read until we have all the data or the server retruned a short read (eof?)
          */
-        if (rw_data->remaining == 0 || status < nfs_get_readmax(nfs)) {
+        if (rw_data->remaining == 0 || status <= nfs_get_readmax(nfs)) {
                 rw_data->cb(rw_data->count - rw_data->remaining, nfs, NULL, rw_data->private_data);
                 free(rw_data);
                 return;
@@ -1597,7 +1597,7 @@ static void r_cb(int status, struct nfs_context *nfs,
         }
 }
 
-        
+
 static int
 _nfs_pread_async(struct nfs_context *nfs, struct nfsfh *nfsfh,
                void *buf, size_t count,  uint64_t offset,
@@ -1607,7 +1607,7 @@ _nfs_pread_async(struct nfs_context *nfs, struct nfsfh *nfsfh,
         size_t cnt;
 
 
-        if (count < nfs_get_readmax(nfs)) {
+        if (count <= nfs_get_readmax(nfs)) {
                 return __nfs_pread_async(nfs, nfsfh, buf, count, offset, cb, private_data, update_pos);
         }
 
@@ -1630,7 +1630,7 @@ _nfs_pread_async(struct nfs_context *nfs, struct nfsfh *nfsfh,
         }
         return __nfs_pread_async(nfs, rw_data->nfsfh, rw_data->buf, cnt, rw_data->offset, r_cb, rw_data, rw_data->update_pos);
 }
-        
+
 int
 nfs_pread_async(struct nfs_context *nfs, struct nfsfh *nfsfh,
                void *buf, size_t count,  uint64_t offset,
