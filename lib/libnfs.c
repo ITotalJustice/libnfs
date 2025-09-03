@@ -1524,127 +1524,25 @@ nfs_chdir_async(struct nfs_context *nfs, const char *path,
         }
 }
 
-static int
-__nfs_pread_async(struct nfs_context *nfs, struct nfsfh *nfsfh,
-                  void *buf, size_t count, uint64_t offset,
-                  nfs_cb cb, void *private_data, int update_pos)
+int
+nfs_pread_async(struct nfs_context *nfs, struct nfsfh *nfsfh,
+                void *buf, size_t count, uint64_t offset,
+                nfs_cb cb, void *private_data)
 {
 	switch (nfs->nfsi->version) {
         case NFS_V3:
                 return nfs3_pread_async_internal(nfs, nfsfh,
                                                  buf, count, offset,
-                                                 cb, private_data, update_pos);
+                                                 cb, private_data, 0);
         case NFS_V4:
                 return nfs4_pread_async_internal(nfs, nfsfh,
                                                  buf, count, offset,
-                                                 cb, private_data, update_pos);
+                                                 cb, private_data, 0);
         default:
                 nfs_set_error(nfs, "%s does not support NFSv%d",
                               __FUNCTION__, nfs->nfsi->version);
                 return -1;
         }
-}
-
-struct rw_data {
-        struct nfsfh *nfsfh;
-        int update_pos;
-        uint8_t *buf;
-        size_t count;
-        size_t remaining;
-        uint64_t offset;
-        nfs_cb cb;
-        void *private_data;
-};
-
-static void r_cb(int status, struct nfs_context *nfs,
-                   void *data, void *private_data)
-{
-        struct rw_data *rw_data = private_data;
-        size_t cnt;
-
-        if (status < 0) {
-                nfs_set_error(nfs, "%s multi pread failed with %d",
-                              __FUNCTION__, status);
-                rw_data->cb(status, nfs, NULL, rw_data->private_data);
-                free(rw_data);
-                return;
-        }
-
-        if (status > rw_data->remaining) {
-                status = rw_data->remaining;
-        }
-        rw_data->buf += status;
-        rw_data->offset += status;
-        rw_data->remaining -= status;
-        /*
-         * Read until we have all the data or the server retruned a short read (eof?)
-         */
-        if (rw_data->remaining == 0 || status < nfs_get_readmax(nfs)) {
-                rw_data->cb(rw_data->count - rw_data->remaining, nfs, NULL, rw_data->private_data);
-                free(rw_data);
-                return;
-        }
-        cnt = rw_data->remaining;
-        if (nfs_get_readmax(nfs) && cnt > nfs_get_readmax(nfs)) {
-                cnt = nfs_get_readmax(nfs);
-        }
-        if (__nfs_pread_async(nfs, rw_data->nfsfh, rw_data->buf, cnt, rw_data->offset, r_cb, rw_data, rw_data->update_pos)) {
-                nfs_set_error(nfs, "%s multi pread failed with ENOMEM",
-                              __FUNCTION__);
-                rw_data->cb(-ENOMEM, nfs, NULL, rw_data->private_data);
-                free(rw_data);
-                return;
-        }
-}
-
-        
-static int
-_nfs_pread_async(struct nfs_context *nfs, struct nfsfh *nfsfh,
-               void *buf, size_t count,  uint64_t offset,
-                 nfs_cb cb, void *private_data, int update_pos)
-{
-        struct rw_data *rw_data;
-        size_t cnt;
-
-
-        if (count < nfs_get_readmax(nfs)) {
-                return __nfs_pread_async(nfs, nfsfh, buf, count, offset, cb, private_data, update_pos);
-        }
-
-        rw_data = malloc(sizeof(struct rw_data));
-        if (rw_data == NULL) {
-                return -ENOMEM;
-        }
-        rw_data->update_pos = 0;
-        rw_data->nfsfh = nfsfh;
-        rw_data->buf = buf;
-        rw_data->count = count;
-        rw_data->remaining = count;
-        rw_data->offset = offset;
-        rw_data->cb = cb;
-        rw_data->private_data = private_data;
-
-        cnt = count;
-        if (nfs_get_readmax(nfs) && cnt > nfs_get_readmax(nfs)) {
-                cnt = nfs_get_readmax(nfs);
-        }
-        return __nfs_pread_async(nfs, rw_data->nfsfh, rw_data->buf, cnt, rw_data->offset, r_cb, rw_data, rw_data->update_pos);
-}
-        
-int
-nfs_pread_async(struct nfs_context *nfs, struct nfsfh *nfsfh,
-               void *buf, size_t count,  uint64_t offset,
-               nfs_cb cb, void *private_data)
-{
-        return _nfs_pread_async(nfs, nfsfh, buf, count, offset, cb, private_data, 0);
-}
-
-int
-nfs_read_async(struct nfs_context *nfs, struct nfsfh *nfsfh,
-               void *buf, size_t count,
-               nfs_cb cb, void *private_data)
-{
-        return _nfs_pread_async(nfs, nfsfh, buf, count, nfsfh->offset, cb, private_data, 1);
 }
 
 int
@@ -1661,6 +1559,27 @@ nfs_preadv_async(struct nfs_context *nfs, struct nfsfh *nfsfh,
                 return nfs4_preadv_async_internal(nfs, nfsfh,
                                                   iov, iovcnt, offset,
                                                   cb, private_data, 0);
+        default:
+                nfs_set_error(nfs, "%s does not support NFSv%d",
+                              __FUNCTION__, nfs->nfsi->version);
+                return -1;
+        }
+}
+
+int
+nfs_read_async(struct nfs_context *nfs, struct nfsfh *nfsfh,
+               void *buf, size_t count,
+               nfs_cb cb, void *private_data)
+{
+	switch (nfs->nfsi->version) {
+        case NFS_V3:
+                return nfs3_pread_async_internal(nfs, nfsfh,
+                                                 buf, count, nfsfh->offset,
+                                                 cb, private_data, 1);
+        case NFS_V4:
+                return nfs4_pread_async_internal(nfs, nfsfh,
+                                                 buf, count, nfsfh->offset,
+                                                 cb, private_data, 1);
         default:
                 nfs_set_error(nfs, "%s does not support NFSv%d",
                               __FUNCTION__, nfs->nfsi->version);
